@@ -1,0 +1,179 @@
+-- Create and use the database
+CREATE DATABASE city_navigation;
+USE city_navigation;
+-- Create User table (stores user details and the associated City)
+CREATE TABLE User (
+    user_id VARCHAR(20) PRIMARY KEY,
+    user_name VARCHAR(50) NOT NULL,
+    user_email VARCHAR(50),
+    user_phone VARCHAR(20),
+    city_id VARCHAR(20),
+    FOREIGN KEY (city_id) REFERENCES City(city_id) ON DELETE CASCADE
+);
+
+-- Create Password table (stores passwords corresponding to users)
+CREATE TABLE Password (
+    user_id VARCHAR(20) PRIMARY KEY,
+    user_password VARCHAR(50) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE
+);
+
+-- Create City table
+CREATE TABLE City (
+    city_id VARCHAR(20) PRIMARY KEY,
+    city_name VARCHAR(50) NOT NULL
+);
+select * from City;
+-- Create Zone table (each zone belongs to a city)
+CREATE TABLE Zone (
+    zone_id VARCHAR(20) PRIMARY KEY,
+    zone_name VARCHAR(50) NOT NULL,
+    city_id VARCHAR(20),
+    FOREIGN KEY (city_id) REFERENCES City(city_id) ON DELETE CASCADE
+);
+
+-- Create Utilities table (each utility belongs to a zone)
+CREATE TABLE Utilities (
+    utility_id VARCHAR(20) PRIMARY KEY,
+    utility_name VARCHAR(255) NOT NULL,
+    zone_id VARCHAR(20),
+    rating INT NOT NULL,
+    FOREIGN KEY (zone_id) REFERENCES Zone(zone_id) ON DELETE CASCADE
+);
+
+-- Add the utility_genre column to the Utilities table
+ALTER TABLE Utilities
+ADD COLUMN utility_genre VARCHAR(50);
+
+-- Insert Initial Data
+-- Insert Cities
+INSERT INTO City (city_id, city_name) VALUES
+('C001', 'Guwahati'),
+('C002', 'Shillong'),
+('C003', 'Agartala');
+
+-- Insert Users (each user belongs to one of the cities as per ER)
+INSERT INTO User (user_id, user_name, user_email, user_phone, city_id) VALUES
+('U001', 'Alice', 'alice@example.com', '1234567890', 'C001'),
+('U002', 'Bob', 'bob@example.com', '2345678901', 'C002'),
+('U003', 'Charlie', 'charlie@example.com', '3456789012', 'C003');
+
+-- Insert Passwords (separate relation)
+INSERT INTO Password (user_id, user_password) VALUES
+('U001', 'password123'),
+('U002', 'securePass456'),
+('U003', 'mypassword789');
+
+-- Insert Zones (associated with cities)
+INSERT INTO Zone (zone_id, zone_name, city_id) VALUES
+('Z001', 'Downtown', 'C001'),
+('Z002', 'Suburban', 'C001'),
+('Z003', 'Uptown', 'C002');
+
+-- Insert Utilities (associated with zones)
+INSERT INTO Utilities (utility_id, utility_name, zone_id, rating) VALUES
+('U001', 'Grocery Shop', 'Z001', 5),
+('U002', 'Hospital', 'Z001', 4),
+('U003', 'Pharmacy', 'Z002', 3),
+('U004', 'School', 'Z003', 5),
+('U005', 'Restaurant', 'Z001', 4);
+
+
+-- Update utility_genre for existing rows
+UPDATE Utilities
+SET utility_genre = 'shop'
+WHERE utility_id = 'U001';
+
+UPDATE Utilities
+SET utility_genre = 'hospital'
+WHERE utility_id = 'U002';
+
+UPDATE Utilities
+SET utility_genre = 'pharmacy'
+WHERE utility_id = 'U003';
+
+UPDATE Utilities
+SET utility_genre = 'school'
+WHERE utility_id = 'U004';
+
+UPDATE Utilities
+SET utility_genre = 'restaurant'
+WHERE utility_id = 'U005';
+
+
+
+
+
+-- Create the Admin table
+CREATE TABLE Admin (
+    admin_id VARCHAR(20) PRIMARY KEY,
+    admin_name VARCHAR(50) NOT NULL,
+    admin_email VARCHAR(50)
+);
+
+-- Create the AdminPassword table (one-to-one with Admin)
+CREATE TABLE AdminPassword (
+    admin_id VARCHAR(20) PRIMARY KEY,
+    admin_password VARCHAR(50) NOT NULL,
+    FOREIGN KEY (admin_id) REFERENCES Admin(admin_id) ON DELETE CASCADE
+);
+
+-- Insert data into Admin table
+INSERT INTO Admin (admin_id, admin_name, admin_email) VALUES
+('A001', 'SuperAdmin', 'admin@example.com'),
+('A002', 'JohnDoe', 'johndoe@example.com');
+
+-- Insert data into AdminPassword table
+INSERT INTO AdminPassword (admin_id, admin_password) VALUES
+('A001', 'AdminPass123'),
+('A002', 'Password456');
+
+
+CREATE TABLE Principal (
+    principal_id VARCHAR(20) PRIMARY KEY,
+    principal_name VARCHAR(50) NOT NULL,
+    utility_id VARCHAR(20),
+    phone_no VARCHAR(15),
+    FOREIGN KEY (utility_id) REFERENCES Utilities(utility_id) ON DELETE CASCADE
+);
+
+INSERT INTO Principal (principal_id, principal_name, utility_id, phone_no) VALUES
+('P001', 'Dr. Emily Watson', 'U001', '9876543210'),
+('P002', 'Mr. Jonathan Doe', 'U003', '9123456789');
+
+CREATE TABLE Managers (
+    manager_id VARCHAR(20) PRIMARY KEY,
+    manager_name VARCHAR(50) NOT NULL,
+    utility_id VARCHAR(20),
+    phone_no VARCHAR(15),
+    FOREIGN KEY (utility_id) REFERENCES Utilities(utility_id) ON DELETE CASCADE
+);
+
+INSERT INTO Managers (manager_id, manager_name, utility_id, phone_no) VALUES
+('M001', 'Alice Brown', 'U002', '8345678901'),
+('M002', 'Robert Smith', 'U004', '8901234567');
+
+CREATE TABLE ShopOwner (
+    shop_owner_id VARCHAR(20) PRIMARY KEY,
+    owner_name VARCHAR(50) NOT NULL,
+    utility_id VARCHAR(20),
+    phone_no VARCHAR(15),
+    FOREIGN KEY (utility_id) REFERENCES Utilities(utility_id) ON DELETE CASCADE
+);
+
+INSERT INTO ShopOwner (shop_owner_id, owner_name, utility_id, phone_no) VALUES
+('S001', 'Tom White', 'U001', '9988776655'),
+('S002', 'Jerry Black', 'U005', '8765432109');
+
+CREATE TABLE Doctors (
+    doctor_id VARCHAR(20) PRIMARY KEY,
+    doctor_name VARCHAR(50) NOT NULL,
+    utility_id VARCHAR(20),
+    phone_no VARCHAR(15),
+    availability_hours VARCHAR(50),
+    FOREIGN KEY (utility_id) REFERENCES Utilities(utility_id) ON DELETE CASCADE
+);
+
+INSERT INTO Doctors (doctor_id, doctor_name, utility_id, phone_no, availability_hours) VALUES
+('D001', 'Dr. Angela Lee', 'U002', '9001234567', '10:00 AM - 2:00 PM, Mon-Fri'),
+('D002', 'Dr. Marcus Green', 'U003', '9012345678', '11:00 AM - 5:00 PM, Sat-Sun');

@@ -1,0 +1,799 @@
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import java.util.Vector;
+
+public class CityNavigationSystemGUI extends JFrame {
+
+    static final String DB_URL = "jdbc:mysql://localhost:3306/city_navigation";
+    static final String USER = "root";
+    static final String PASS = "Mysql@123";
+
+    Connection conn;
+
+    CardLayout cardLayout;
+    JPanel mainPanel;
+
+    // Card names for our panels
+    static final String MAIN_MENU = "Main Menu";
+    static final String ADMIN_LOGIN = "Admin Login";
+    static final String USER_LOGIN = "User Login";
+    static final String ADMIN_MENU = "Admin Menu";
+    static final String USER_MENU = "User Menu";
+
+    public CityNavigationSystemGUI() {
+        try {
+            conn = DriverManager.getConnection(DB_URL, USER, PASS);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Database connection error: " + e.getMessage());
+            System.exit(1);
+        }
+
+        cardLayout = new CardLayout();
+        mainPanel = new JPanel(cardLayout);
+
+        mainPanel.add(new MainMenuPanel(), MAIN_MENU);
+        mainPanel.add(new AdminLoginPanel(), ADMIN_LOGIN);
+        mainPanel.add(new UserLoginPanel(), USER_LOGIN);
+        mainPanel.add(new AdminMenuPanel(), ADMIN_MENU);
+        mainPanel.add(new UserMenuPanel(), USER_MENU);
+
+        add(mainPanel);
+
+        setTitle("City Navigation System");
+        setSize(700, 500);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setVisible(true);
+    }
+
+    // ------------------ PANEL CLASSES ------------------
+    class MainMenuPanel extends JPanel {
+        public MainMenuPanel() {
+            setLayout(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(10, 10, 10, 10);
+
+            JButton adminButton = new JButton("Admin Section");
+            JButton userButton = new JButton("User Section");
+            JButton exitButton = new JButton("Exit");
+
+            adminButton.addActionListener(e -> cardLayout.show(mainPanel, ADMIN_LOGIN));
+            userButton.addActionListener(e -> cardLayout.show(mainPanel, USER_LOGIN));
+            exitButton.addActionListener(e -> System.exit(0));
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            add(adminButton, gbc);
+            gbc.gridy = 1;
+            add(userButton, gbc);
+            gbc.gridy = 2;
+            add(exitButton, gbc);
+        }
+    }
+
+    // Admin Login Panel – enter Admin ID and Password
+    class AdminLoginPanel extends JPanel {
+        JTextField adminIdField;
+        JPasswordField adminPasswordField;
+
+        public AdminLoginPanel() {
+            setLayout(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(10, 10, 10, 10);
+
+            JLabel idLabel = new JLabel("Admin ID:");
+            adminIdField = new JTextField(15);
+            JLabel passLabel = new JLabel("Password:");
+            adminPasswordField = new JPasswordField(15);
+
+            JButton loginButton = new JButton("Login");
+            JButton backButton = new JButton("Back");
+
+            loginButton.addActionListener(e -> {
+                String adminId = adminIdField.getText();
+                String adminPassword = new String(adminPasswordField.getPassword());
+                try {
+                    if (!authenticateAdmin(conn, adminId, adminPassword)) {
+                        JOptionPane.showMessageDialog(this, "Invalid admin credentials!", "Error", JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        cardLayout.show(mainPanel, ADMIN_MENU);
+                    }
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+                }
+            });
+
+            backButton.addActionListener(e -> cardLayout.show(mainPanel, MAIN_MENU));
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            add(idLabel, gbc);
+            gbc.gridx = 1;
+            add(adminIdField, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            add(passLabel, gbc);
+            gbc.gridx = 1;
+            add(adminPasswordField, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 2;
+            add(loginButton, gbc);
+            gbc.gridx = 1;
+            add(backButton, gbc);
+        }
+    }
+
+    // User Login Panel – enter User ID and Password
+    class UserLoginPanel extends JPanel {
+        JTextField userIdField;
+        JPasswordField userPasswordField;
+
+        public UserLoginPanel() {
+            setLayout(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(10, 10, 10, 10);
+
+            JLabel idLabel = new JLabel("User ID:");
+            userIdField = new JTextField(15);
+            JLabel passLabel = new JLabel("Password:");
+            userPasswordField = new JPasswordField(15);
+
+            JButton loginButton = new JButton("Login");
+            JButton backButton = new JButton("Back");
+
+            loginButton.addActionListener(e -> {
+                String userId = userIdField.getText();
+                String userPassword = new String(userPasswordField.getPassword());
+                try {
+                    if (!authenticateUser(conn, userId, userPassword)) {
+                        JOptionPane.showMessageDialog(this, "Invalid user credentials!", "Error", JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        cardLayout.show(mainPanel, USER_MENU);
+                    }
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+                }
+            });
+
+            backButton.addActionListener(e -> cardLayout.show(mainPanel, MAIN_MENU));
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            add(idLabel, gbc);
+            gbc.gridx = 1;
+            add(userIdField, gbc);
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            add(passLabel, gbc);
+            gbc.gridx = 1;
+            add(userPasswordField, gbc);
+            gbc.gridx = 0;
+            gbc.gridy = 2;
+            add(loginButton, gbc);
+            gbc.gridx = 1;
+            add(backButton, gbc);
+        }
+    }
+
+    class AdminMenuPanel extends JPanel {
+        public AdminMenuPanel() {
+            setLayout(new BorderLayout());
+            JPanel buttonPanel = new JPanel(new GridLayout(4, 3, 10, 10));
+
+            JButton addUserBtn = new JButton("Add User");
+            JButton addCityBtn = new JButton("Add City");
+            JButton addZoneBtn = new JButton("Add Zone");
+
+            JButton addUtilityBtn = new JButton("Add Utility");
+            JButton addPrincipalBtn = new JButton("Add Principal");
+            JButton addManagerBtn = new JButton("Add Manager");
+
+            JButton addShopOwnerBtn = new JButton("Add Shop Owner");
+            JButton addDoctorBtn = new JButton("Add Doctor");
+            JButton viewRecordsBtn = new JButton("View All Records");
+
+            JButton viewPasswordsBtn = new JButton("View Passwords");
+            JButton deleteRecordBtn = new JButton("Delete Record");
+            JButton updateRecordBtn = new JButton("Update Record");
+
+            addUserBtn.addActionListener(e -> adminAddUser());
+            addCityBtn.addActionListener(e -> adminAddCity());
+            addZoneBtn.addActionListener(e -> adminAddZone());
+            addUtilityBtn.addActionListener(e -> adminAddUtility());
+            addPrincipalBtn.addActionListener(e -> adminAddPrincipal());
+            addManagerBtn.addActionListener(e -> adminAddManager());
+            addShopOwnerBtn.addActionListener(e -> adminAddShopOwner());
+            addDoctorBtn.addActionListener(e -> adminAddDoctor());
+            viewRecordsBtn.addActionListener(e -> adminViewAllRecords());
+            viewPasswordsBtn.addActionListener(e -> adminViewPasswords());
+            deleteRecordBtn.addActionListener(e -> adminDeleteRecord());
+            updateRecordBtn.addActionListener(e -> adminUpdateRecord());
+
+            buttonPanel.add(addUserBtn);
+            buttonPanel.add(addCityBtn);
+            buttonPanel.add(addZoneBtn);
+            buttonPanel.add(addUtilityBtn);
+            buttonPanel.add(addPrincipalBtn);
+            buttonPanel.add(addManagerBtn);
+            buttonPanel.add(addShopOwnerBtn);
+            buttonPanel.add(addDoctorBtn);
+            buttonPanel.add(viewRecordsBtn);
+            buttonPanel.add(viewPasswordsBtn);
+            buttonPanel.add(deleteRecordBtn);
+            buttonPanel.add(updateRecordBtn);
+
+            JButton backBtn = new JButton("Back to Main Menu");
+            backBtn.addActionListener(e -> cardLayout.show(mainPanel, MAIN_MENU));
+
+            add(buttonPanel, BorderLayout.CENTER);
+            add(backBtn, BorderLayout.SOUTH);
+        }
+    }
+
+    class UserMenuPanel extends JPanel {
+        JComboBox<String> cityCombo;
+        JComboBox<String> zoneCombo;
+        JTextField utilityField;
+        JTextArea resultArea;
+        JButton searchBtn;
+        JButton detailsBtn;
+        JButton backBtn; // New button
+
+        public UserMenuPanel() {
+            setLayout(new BorderLayout());
+
+            JPanel topPanel = new JPanel(new GridLayout(5, 2, 5, 5));
+            topPanel.add(new JLabel("Select City:"));
+            cityCombo = new JComboBox<>();
+            topPanel.add(cityCombo);
+
+            topPanel.add(new JLabel("Select Zone:"));
+            zoneCombo = new JComboBox<>();
+            topPanel.add(zoneCombo);
+
+            topPanel.add(new JLabel("Utility Genre:"));
+            utilityField = new JTextField();
+            topPanel.add(utilityField);
+
+            searchBtn = new JButton("Search Utility");
+            topPanel.add(searchBtn);
+            detailsBtn = new JButton("View Utility Details");
+            topPanel.add(detailsBtn);
+
+            backBtn = new JButton("Back to Main Menu");  // New button to navigate back
+            topPanel.add(backBtn);
+            topPanel.add(new JLabel(""));
+
+            resultArea = new JTextArea();
+            resultArea.setEditable(false);
+            JScrollPane scrollPane = new JScrollPane(resultArea);
+
+            add(topPanel, BorderLayout.NORTH);
+            add(scrollPane, BorderLayout.CENTER);
+
+            populateCities();
+
+            cityCombo.addActionListener(e -> populateZones());
+            searchBtn.addActionListener(e -> searchUtility());
+            detailsBtn.addActionListener(e -> viewUtilityDetails());
+            backBtn.addActionListener(e -> cardLayout.show(mainPanel, MAIN_MENU));
+        }
+
+        private void populateCities() {
+            cityCombo.removeAllItems();
+            String query = "SELECT city_id, city_name FROM City";
+            try (PreparedStatement stmt = conn.prepareStatement(query);
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String cityId = rs.getString("city_id");
+                    String cityName = rs.getString("city_name");
+                    cityCombo.addItem(cityName + " (ID: " + cityId + ")");
+                }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Error loading cities: " + ex.getMessage());
+            }
+        }
+
+        private void populateZones() {
+            zoneCombo.removeAllItems();
+            String selectedItem = (String) cityCombo.getSelectedItem();
+            if (selectedItem == null) return;
+            String cityId = selectedItem.substring(selectedItem.indexOf("ID: ") + 4, selectedItem.indexOf(")"));
+            String query = "SELECT zone_id, zone_name FROM Zone WHERE city_id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, cityId);
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    String zoneId = rs.getString("zone_id");
+                    String zoneName = rs.getString("zone_name");
+                    zoneCombo.addItem(zoneName + " (ID: " + zoneId + ")");
+                }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Error loading zones: " + ex.getMessage());
+            }
+        }
+
+        private void searchUtility() {
+            resultArea.setText("");
+            String selectedZoneItem = (String) zoneCombo.getSelectedItem();
+            if (selectedZoneItem == null) {
+                JOptionPane.showMessageDialog(this, "No zone selected!");
+                return;
+            }
+            String zoneId = selectedZoneItem.substring(selectedZoneItem.indexOf("ID: ") + 4, selectedZoneItem.indexOf(")"));
+            String utilityGenre = utilityField.getText().trim();
+            if (utilityGenre.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Enter a utility genre.");
+                return;
+            }
+            String query = "SELECT * FROM Utilities WHERE zone_id = ? AND LOWER(utility_genre) = ? ORDER BY rating DESC";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, zoneId);
+                stmt.setString(2, utilityGenre.toLowerCase());
+                ResultSet rs = stmt.executeQuery();
+                boolean found = false;
+                while (rs.next()) {
+                    found = true;
+                    String utilityId = rs.getString("utility_id");
+                    String utilityName = rs.getString("utility_name");
+                    int rating = rs.getInt("rating");
+                    String genre = rs.getString("utility_genre");
+                    resultArea.append("Utility ID: " + utilityId + ", Name: " + utilityName +
+                            ", Rating: " + rating + ", Genre: " + genre + "\n");
+                }
+                if (!found) {
+                    resultArea.setText("No utilities found matching the criteria.");
+                }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+            }
+        }
+
+        private void viewUtilityDetails() {
+            String utilityId = JOptionPane.showInputDialog(this, "Enter the Utility ID for details:");
+            if (utilityId == null || utilityId.trim().isEmpty()) {
+                return;
+            }
+            try {
+                listUtilityDetails(conn, utilityId, null);
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+            }
+        }
+    }
+
+    // ------------------ ADMIN OPERATIONS (Using dialogs) ------------------
+    private void adminAddUser() {
+        try {
+            String userId = JOptionPane.showInputDialog(this, "Enter User ID:");
+            if (userId == null) return;
+            if (checkUserExists(conn, userId)) {
+                JOptionPane.showMessageDialog(this, "User ID already exists.");
+                return;
+            }
+            String userName = JOptionPane.showInputDialog(this, "Enter User Name:");
+            String email = JOptionPane.showInputDialog(this, "Enter Email:");
+            String phone = JOptionPane.showInputDialog(this, "Enter Phone:");
+            String password = JOptionPane.showInputDialog(this, "Enter Password:");
+
+            String queryUser = "INSERT INTO User (user_id, user_name, user_email, user_phone) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(queryUser)) {
+                stmt.setString(1, userId);
+                stmt.setString(2, userName);
+                stmt.setString(3, email);
+                stmt.setString(4, phone);
+                stmt.executeUpdate();
+            }
+            String queryPassword = "INSERT INTO Password (user_id, user_password) VALUES (?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(queryPassword)) {
+                stmt.setString(1, userId);
+                stmt.setString(2, password);
+                stmt.executeUpdate();
+            }
+            JOptionPane.showMessageDialog(this, "User added successfully!");
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+        }
+    }
+
+    private void adminAddCity() {
+        try {
+            String cityId = JOptionPane.showInputDialog(this, "Enter City ID:");
+            if (cityId == null) return;
+            String cityName = JOptionPane.showInputDialog(this, "Enter City Name:");
+            String query = "INSERT INTO City (city_id, city_name) VALUES (?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, cityId);
+                stmt.setString(2, cityName);
+                stmt.executeUpdate();
+            }
+            JOptionPane.showMessageDialog(this, "City added successfully!");
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+        }
+    }
+
+    private void adminAddZone() {
+        try {
+            String zoneId = JOptionPane.showInputDialog(this, "Enter Zone ID:");
+            if (zoneId == null) return;
+            String zoneName = JOptionPane.showInputDialog(this, "Enter Zone Name:");
+            String cityId = JOptionPane.showInputDialog(this, "Enter City ID (this zone belongs to):");
+            String query = "INSERT INTO Zone (zone_id, zone_name, city_id) VALUES (?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, zoneId);
+                stmt.setString(2, zoneName);
+                stmt.setString(3, cityId);
+                stmt.executeUpdate();
+            }
+            JOptionPane.showMessageDialog(this, "Zone added successfully!");
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+        }
+    }
+
+    private void adminAddUtility() {
+        try {
+            String utilityId = JOptionPane.showInputDialog(this, "Enter Utility ID:");
+            if (utilityId == null) return;
+            String utilityName = JOptionPane.showInputDialog(this, "Enter Utility Name:");
+            String zoneId = JOptionPane.showInputDialog(this, "Enter Zone ID (this utility belongs to):");
+            String ratingStr = JOptionPane.showInputDialog(this, "Enter Rating (integer):");
+            int rating = Integer.parseInt(ratingStr);
+            String genre = JOptionPane.showInputDialog(this, "Enter Utility Genre (e.g., school, hospital):");
+            String query = "INSERT INTO Utilities (utility_id, utility_name, zone_id, rating, utility_genre) VALUES (?, ?, ?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, utilityId);
+                stmt.setString(2, utilityName);
+                stmt.setString(3, zoneId);
+                stmt.setInt(4, rating);
+                stmt.setString(5, genre);
+                stmt.executeUpdate();
+            }
+            JOptionPane.showMessageDialog(this, "Utility added successfully!");
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Rating must be an integer.");
+        }
+    }
+
+    private void adminAddPrincipal() {
+        try {
+            String principalId = JOptionPane.showInputDialog(this, "Enter Principal ID:");
+            if (principalId == null) return;
+            String principalName = JOptionPane.showInputDialog(this, "Enter Principal Name:");
+            String utilityId = JOptionPane.showInputDialog(this, "Enter Utility ID (associated with school):");
+            String phoneNo = JOptionPane.showInputDialog(this, "Enter Phone No:");
+            String query = "INSERT INTO Principal (principal_id, principal_name, utility_id, phone_no) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, principalId);
+                stmt.setString(2, principalName);
+                stmt.setString(3, utilityId);
+                stmt.setString(4, phoneNo);
+                stmt.executeUpdate();
+            }
+            JOptionPane.showMessageDialog(this, "Principal added successfully!");
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+        }
+    }
+
+    private void adminAddManager() {
+        try {
+            String managerId = JOptionPane.showInputDialog(this, "Enter Manager ID:");
+            if (managerId == null) return;
+            String managerName = JOptionPane.showInputDialog(this, "Enter Manager Name:");
+            String utilityId = JOptionPane.showInputDialog(this, "Enter Utility ID (associated with restaurant):");
+            String phoneNo = JOptionPane.showInputDialog(this, "Enter Phone No:");
+            String query = "INSERT INTO Managers (manager_id, manager_name, utility_id, phone_no) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, managerId);
+                stmt.setString(2, managerName);
+                stmt.setString(3, utilityId);
+                stmt.setString(4, phoneNo);
+                stmt.executeUpdate();
+            }
+            JOptionPane.showMessageDialog(this, "Manager added successfully!");
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+        }
+    }
+
+    private void adminAddShopOwner() {
+        try {
+            String shopOwnerId = JOptionPane.showInputDialog(this, "Enter Shop Owner ID:");
+            if (shopOwnerId == null) return;
+            String ownerName = JOptionPane.showInputDialog(this, "Enter Shop Owner Name:");
+            String utilityId = JOptionPane.showInputDialog(this, "Enter Utility ID (associated with shop):");
+            String phoneNo = JOptionPane.showInputDialog(this, "Enter Phone No:");
+            String query = "INSERT INTO ShopOwner (shop_owner_id, owner_name, utility_id, phone_no) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, shopOwnerId);
+                stmt.setString(2, ownerName);
+                stmt.setString(3, utilityId);
+                stmt.setString(4, phoneNo);
+                stmt.executeUpdate();
+            }
+            JOptionPane.showMessageDialog(this, "Shop Owner added successfully!");
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+        }
+    }
+
+    private void adminAddDoctor() {
+        try {
+            String doctorId = JOptionPane.showInputDialog(this, "Enter Doctor ID:");
+            if (doctorId == null) return;
+            String doctorName = JOptionPane.showInputDialog(this, "Enter Doctor Name:");
+            String utilityId = JOptionPane.showInputDialog(this, "Enter Utility ID (associated with hospital):");
+            String phoneNo = JOptionPane.showInputDialog(this, "Enter Phone No:");
+            String availabilityHours = JOptionPane.showInputDialog(this, "Enter Availability Hours:");
+            String query = "INSERT INTO Doctors (doctor_id, doctor_name, utility_id, phone_no, availability_hours) VALUES (?, ?, ?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, doctorId);
+                stmt.setString(2, doctorName);
+                stmt.setString(3, utilityId);
+                stmt.setString(4, phoneNo);
+                stmt.setString(5, availabilityHours);
+                stmt.executeUpdate();
+            }
+            JOptionPane.showMessageDialog(this, "Doctor added successfully!");
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+        }
+    }
+
+    // ------------------ VIEW RECORDS, PASSWORDS, DELETE & UPDATE METHODS ------------------
+    private void adminViewAllRecords() {
+        String[] options = {"Users", "Cities", "Zones", "Utilities"};
+        int selection = JOptionPane.showOptionDialog(this, "Select which records to view:",
+                "View All Records", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, options, options[0]);
+        if (selection == -1) return;
+        String tableName = "";
+        switch (selection) {
+            case 0:
+                tableName = "User";
+                break;
+            case 1:
+                tableName = "City";
+                break;
+            case 2:
+                tableName = "Zone";
+                break;
+            case 3:
+                tableName = "Utilities";
+                break;
+        }
+        displayTableDialog(tableName);
+    }
+
+    private void adminViewPasswords() {
+        String[] options = {"User", "Admin"};
+        int selection = JOptionPane.showOptionDialog(this, "Which passwords to view?",
+                "View Passwords", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, options, options[0]);
+        if (selection == -1) return;
+        String tableName = (selection == 0) ? "Password" : "AdminPassword";
+        displayTableDialog(tableName);
+    }
+
+    private void adminDeleteRecord() {
+        String[] tables = {"User", "Password", "City", "Zone", "Utilities", "Admin", "AdminPassword"};
+        String tableName = (String) JOptionPane.showInputDialog(this, "Select table to delete record from:",
+                "Delete Record", JOptionPane.QUESTION_MESSAGE, null, tables, tables[0]);
+        if (tableName == null) return;
+        String pk = getPrimaryKeyColumn(tableName);
+        if (pk.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Unknown table!");
+            return;
+        }
+        String recordId = JOptionPane.showInputDialog(this, "Enter record ID (" + pk + ") to delete from " + tableName + ":");
+        if (recordId == null) return;
+        try {
+            String query = "DELETE FROM " + tableName + " WHERE " + pk + " = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, recordId);
+            int affected = stmt.executeUpdate();
+            if (affected > 0) {
+                JOptionPane.showMessageDialog(this, "Record deleted successfully from " + tableName + "!");
+            } else {
+                JOptionPane.showMessageDialog(this, "No record found with the provided ID!");
+            }
+            stmt.close();
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+        }
+    }
+
+    private void adminUpdateRecord() {
+        String[] tables = {"User", "Password", "City", "Zone", "Utilities", "Admin", "AdminPassword"};
+        String tableName = (String) JOptionPane.showInputDialog(this, "Select table to update record:",
+                "Update Record", JOptionPane.QUESTION_MESSAGE, null, tables, tables[0]);
+        if (tableName == null) return;
+        String column = JOptionPane.showInputDialog(this, "Enter column name to update:");
+        if (column == null) return;
+        String newValue = JOptionPane.showInputDialog(this, "Enter new value for column '" + column + "':");
+        if (newValue == null) return;
+        String pk = getPrimaryKeyColumn(tableName);
+        if (pk.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Unknown table!");
+            return;
+        }
+        String recordId = JOptionPane.showInputDialog(this, "Enter record ID (" + pk + ") to update:");
+        if (recordId == null) return;
+        try {
+            String query = "UPDATE " + tableName + " SET " + column + " = ? WHERE " + pk + " = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, newValue);
+            stmt.setString(2, recordId);
+            int affected = stmt.executeUpdate();
+            if (affected > 0) {
+                JOptionPane.showMessageDialog(this, "Record updated successfully in " + tableName + "!");
+            } else {
+                JOptionPane.showMessageDialog(this, "No record found with the provided ID!");
+            }
+            stmt.close();
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+        }
+    }
+
+    private void displayTableDialog(String tableName) {
+        try {
+            String query = "SELECT * FROM " + tableName;
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+
+            ResultSetMetaData md = rs.getMetaData();
+            int columnCount = md.getColumnCount();
+
+            Vector<String> columnNames = new Vector<>();
+            for (int i = 1; i <= columnCount; i++) {
+                columnNames.add(md.getColumnName(i));
+            }
+
+            Vector<Vector<Object>> data = new Vector<>();
+            while (rs.next()) {
+                Vector<Object> row = new Vector<>(columnCount);
+                for (int i = 1; i <= columnCount; i++) {
+                    row.add(rs.getObject(i));
+                }
+                data.add(row);
+            }
+
+            DefaultTableModel model = new DefaultTableModel(data, columnNames);
+            JTable table = new JTable(model);
+            JScrollPane scrollPane = new JScrollPane(table);
+            scrollPane.setPreferredSize(new Dimension(600, 300));
+
+            JOptionPane.showMessageDialog(this, scrollPane, tableName, JOptionPane.INFORMATION_MESSAGE);
+
+            rs.close();
+            stmt.close();
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "SQL Error: " + ex.getMessage());
+        }
+    }
+
+    private String getPrimaryKeyColumn(String tableName) {
+        if (tableName.equalsIgnoreCase("User") || tableName.equalsIgnoreCase("Password"))
+            return "user_id";
+        else if (tableName.equalsIgnoreCase("City"))
+            return "city_id";
+        else if (tableName.equalsIgnoreCase("Zone"))
+            return "zone_id";
+        else if (tableName.equalsIgnoreCase("Utilities"))
+            return "utility_id";
+        else if (tableName.equalsIgnoreCase("Admin") || tableName.equalsIgnoreCase("AdminPassword"))
+            return "admin_id";
+        return "";
+    }
+
+    // ------------------ UTILITY DETAILS METHOD ------------------
+    private void listUtilityDetails(Connection conn, String utilityId, JPanel parentPanel) throws SQLException {
+        String genreQuery = "SELECT utility_genre FROM Utilities WHERE utility_id = ?";
+        String utilityGenre = null;
+        try (PreparedStatement stmt = conn.prepareStatement(genreQuery)) {
+            stmt.setString(1, utilityId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                utilityGenre = rs.getString("utility_genre");
+            }
+        }
+
+        if (utilityGenre != null) {
+            String query = null;
+            String detailsType = "";
+            switch (utilityGenre.toLowerCase()) {
+                case "school":
+                    query = "SELECT * FROM Principal WHERE utility_id = ?";
+                    detailsType = "Principal Details";
+                    break;
+                case "hospital":
+                    query = "SELECT * FROM Doctors WHERE utility_id = ?";
+                    detailsType = "Doctor Availability";
+                    break;
+                case "grocery shop":
+                    query = "SELECT * FROM ShopOwner WHERE utility_id = ?";
+                    detailsType = "Shop Owner Details";
+                    break;
+                case "resturant":
+                    query = "SELECT * FROM Managers WHERE utility_id = ?";
+                    detailsType = "Manager Details";
+                    break;
+                default:
+                    JOptionPane.showMessageDialog(this, "No specific details available for genre: " + utilityGenre);
+                    return;
+            }
+
+            StringBuilder details = new StringBuilder();
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, utilityId);
+                ResultSet rs = stmt.executeQuery();
+                boolean found = false;
+                ResultSetMetaData meta = rs.getMetaData();
+                int colCount = meta.getColumnCount();
+                while (rs.next()) {
+                    found = true;
+                    for (int i = 1; i <= colCount; i++) {
+                        details.append(meta.getColumnName(i)).append(": ").append(rs.getString(i)).append("\n");
+                    }
+                    details.append("-----------------------------\n");
+                }
+                if (!found) {
+                    JOptionPane.showMessageDialog(this, "No " + detailsType + " found for utility ID: " + utilityId);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Utility Genre: " + utilityGenre + "\n" + detailsType + ":\n" + details.toString());
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Utility ID " + utilityId + " does not have a genre assigned.");
+        }
+    }
+
+    // ------------------ AUTHENTICATION & HELPER METHODS ------------------
+    private boolean authenticateAdmin(Connection conn, String adminId, String adminPassword) throws SQLException {
+        String query = "SELECT ap.admin_id FROM Admin a " +
+                "JOIN AdminPassword ap ON a.admin_id = ap.admin_id " +
+                "WHERE ap.admin_id = ? AND ap.admin_password = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, adminId);
+            stmt.setString(2, adminPassword);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+        }
+    }
+
+    private boolean authenticateUser(Connection conn, String userId, String password) throws SQLException {
+        String query = "SELECT p.user_id FROM User u " +
+                "JOIN Password p ON u.user_id = p.user_id " +
+                "WHERE p.user_id = ? AND p.user_password = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, userId);
+            stmt.setString(2, password);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+        }
+    }
+
+    private boolean checkUserExists(Connection conn, String userId) throws SQLException {
+        String query = "SELECT user_id FROM User WHERE user_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new CityNavigationSystemGUI());
+    }
+}

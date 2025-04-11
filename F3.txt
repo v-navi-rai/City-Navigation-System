@@ -1,0 +1,15 @@
+USE city_navigation;
+
+drop table password;
+drop table user;
+drop table adminpassword;
+drop table admin;
+drop table principal;
+drop table doctors;
+drop table managers;
+drop table shopowner;
+drop table utilities;
+drop table zone;
+drop table city;
+
+show tables;
